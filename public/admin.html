@@ -79,6 +79,11 @@
           </button>
         </li>
         <li class="nav-item">
+          <button class="js-admin-tab-btn" data-tab="integrations">
+            <span>🧩</span> Billing &amp; Integrations
+          </button>
+        </li>
+        <li class="nav-item">
           <button class="js-admin-tab-btn" data-tab="settings">
             <span>⚙️</span> Restaurant Settings
           </button>
@@ -220,6 +225,11 @@
               </div>
               <div class="card-header-actions">
                 <button class="btn-card-back js-admin-go-dashboard" onclick="Admin.switchTab('overview')" title="Back to Dashboard"><span>🏠</span> Dashboard</button>
+                <select id="orderTestFilter" onchange="Admin.filterOrders()" style="padding: 7px 10px; border-radius: 6px; border: 1px solid #CBD5E1; font-size: 0.84rem;">
+                  <option value="all">All Orders</option>
+                  <option value="test">Test Orders Only</option>
+                  <option value="live">Live Orders Only</option>
+                </select>
                 <button class="btn-action respond" onclick="Admin.loadOrders()">🔄 Refresh Orders</button>
               </div>
             </div>
@@ -468,18 +478,43 @@
                 </div>
 
                 <div class="admin-input-group">
-                  <label>Delivery Fee (₹)</label>
-                  <input type="number" id="setDeliveryFee" value="30" min="0">
+                  <label>Service Charge (₹ per order)</label>
+                  <input type="number" id="setServiceCharge" value="14.99" min="0" step="0.01">
+                  <small style="color: #64748B;">Flat charge applied once per order on the customer bill.</small>
                 </div>
 
                 <div class="admin-input-group">
                   <label>Packaging Fee (₹)</label>
-                  <input type="number" id="setPackagingFee" value="15" min="0">
+                  <input type="number" id="setPackagingFee" value="0" min="0" step="0.01">
+                  <small style="color: #64748B;">Currently ₹0 — shown on the customer bill as-is.</small>
+                </div>
+
+                <div class="admin-input-group" style="background: #EFF6FF; border: 1px solid #BFDBFE; padding: 14px 18px; border-radius: 10px;">
+                  <label for="setEnableDevelopmentDeliveryFee" style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; color: #1D4ED8; font-weight: 700; margin: 0;">
+                    <input type="checkbox" id="setEnableDevelopmentDeliveryFee" style="width: 18px; height: 18px; cursor: pointer;">
+                    Enable DEVELOPMENT delivery fee
+                  </label>
+                  <small style="color: #64748B; display: block; margin-top: 6px;">
+                    OFF = customers see "Calculated when delivery integration is enabled". ON = a manually configured development rate is shown, clearly labelled as an estimate — never a live Shiprocket rate.
+                  </small>
                 </div>
 
                 <div class="admin-input-group">
-                  <label>GST Tax (%)</label>
+                  <label>Development Delivery Fee (₹)</label>
+                  <input type="number" id="setDevelopmentDeliveryFee" value="30" min="0" step="0.01">
+                  <small style="color: #64748B;">Manual development estimate, used only when the toggle above is ON.</small>
+                </div>
+
+                <div class="admin-input-group">
+                  <label>Minimum Chef Tip (₹)</label>
+                  <input type="number" id="setMinimumTip" value="5" min="0" step="1">
+                  <small style="color: #64748B;">Positive tips below this value are rejected at checkout.</small>
+                </div>
+
+                <div class="admin-input-group">
+                  <label>Business GST Tax (%) <span style="color:#B45309;">— internal only</span></label>
                   <input type="number" id="setTaxPercentage" value="5" min="0">
+                  <small style="color: #64748B;">Used for the business's own tax-compliance records. <strong>Not shown on the customer-facing bill.</strong></small>
                 </div>
 
                 <div class="admin-input-group" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; background: #FFFBEB; border: 1px solid #FDE68A; padding: 14px 18px; border-radius: 10px;">
@@ -500,7 +535,99 @@
         </div>
 
         <!-- ==========================================
-             TAB 6: WHATSAPP ORDERING SETTINGS
+             TAB 6: BILLING & INTEGRATIONS
+        ========================================== -->
+        <div class="admin-tab-content" id="tab-integrations" style="display: none;">
+          <!-- Integration Status -->
+          <div class="admin-card">
+            <div class="card-header-flex" style="margin-bottom: 16px;">
+              <div>
+                <h3 class="card-title" style="margin-bottom: 4px;">Payment &amp; Delivery Integration Status</h3>
+                <p style="font-size: 0.85rem; color: #64748B;">
+                  Both providers are placeholders today. No API keys are stored in this dashboard and none are ever sent to the browser.
+                </p>
+              </div>
+              <button class="btn-card-back js-admin-go-dashboard" onclick="Admin.switchTab('overview')" title="Back to Dashboard"><span>🏠</span> Dashboard</button>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px;">
+              <div class="integration-status-card">
+                <div class="integration-status-head">
+                  <span class="integration-icon">💳</span>
+                  <span class="integration-provider">Razorpay (Payments)</span>
+                </div>
+                <div class="integration-status-value" id="adminPaymentStatus">Loading…</div>
+                <p class="integration-status-note" id="adminPaymentNote"></p>
+                <div class="integration-env-list" id="adminPaymentEnv"></div>
+              </div>
+              <div class="integration-status-card">
+                <div class="integration-status-head">
+                  <span class="integration-icon">🛵</span>
+                  <span class="integration-provider">Shiprocket (Delivery)</span>
+                </div>
+                <div class="integration-status-value" id="adminDeliveryStatus">Loading…</div>
+                <p class="integration-status-note" id="adminDeliveryNote"></p>
+                <div class="integration-env-list" id="adminDeliveryEnv"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Billing Configuration -->
+          <div class="admin-card">
+            <div class="card-header-flex">
+              <h3 class="card-title">Customer Bill Configuration</h3>
+              <button class="btn-action respond" onclick="Admin.switchTab('settings')">✏️ Edit in Settings</button>
+            </div>
+            <div class="billing-config-grid" id="adminBillingConfig">
+              <!-- Filled by admin.js -->
+            </div>
+          </div>
+
+          <!-- Chef Tips & Order Totals -->
+          <div class="admin-card">
+            <div class="card-header-flex">
+              <h3 class="card-title">Chef Tips &amp; Order Totals</h3>
+              <button class="btn-action respond" onclick="Admin.loadIntegrations()">🔄 Refresh</button>
+            </div>
+            <div class="billing-config-grid" id="adminOrderTotals">
+              <!-- Filled by admin.js -->
+            </div>
+          </div>
+
+          <!-- Test Order Management -->
+          <div class="admin-card">
+            <div class="card-header-flex">
+              <div>
+                <h3 class="card-title">Test Order Management</h3>
+                <p style="font-size: 0.85rem; color: #64748B;">
+                  Orders saved with <strong>Place Test Order</strong>. These are clearly flagged as unpaid and unconfirmed, and can be deleted safely.
+                </p>
+              </div>
+              <button class="btn-card-back js-admin-go-dashboard" onclick="Admin.switchTab('orders')" title="Open Order Management"><span>📦</span> All Orders</button>
+            </div>
+            <div class="admin-table-wrapper">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Order Ref</th>
+                    <th>Customer</th>
+                    <th>Total</th>
+                    <th>Tip</th>
+                    <th>Payment</th>
+                    <th>Delivery</th>
+                    <th>Saved At</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adminTestOrdersTableBody">
+                  <!-- Filled by admin.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==========================================
+             TAB 7: WHATSAPP ORDERING SETTINGS
         ========================================== -->
         <div class="admin-tab-content" id="tab-whatsapp" style="display: none;">
           <div class="admin-card">

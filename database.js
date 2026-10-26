@@ -22,9 +22,30 @@ const defaultSettings = {
   whatsapp: "919494500646",
   openingHours: "7:00 AM–12:00 PM and 6:00 PM–10:00 PM daily",
   statusNote: "Phone number and opening hours require owner confirmation before production launch.",
-  deliveryFee: 30,
-  packagingFee: 15,
+
+  // ---- Customer-facing billing (see README / services folder) ----
+  serviceCharge: 14.99,        // Flat service charge per order (₹)
+  packagingFee: 0,             // Packaging fee (₹) - currently 0
+  enableDevelopmentDeliveryFee: false, // OFF = show "Calculated when delivery integration is enabled"
+  developmentDeliveryFee: 30,  // Manually configured DEVELOPMENT estimate (₹), shown only when enabled
+
+  // ---- Chef tip configuration ----
+  minimumTip: 5,               // Lowest allowed positive tip (₹)
+  tipPresets: [10, 20, 30, 50],// Preset tip buttons (₹)
+
+  // ---- Business-only tax compliance (NEVER shown on the customer bill) ----
   taxPercentage: 5,
+
+  // ---- Parcel defaults reserved for future Shiprocket integration ----
+  parcelLengthCm: 25,
+  parcelWidthCm: 20,
+  parcelHeightCm: 10,
+  parcelApproxGramsPerItem: 250,
+  pickupPincode: "",
+
+  // ---- Legacy key kept for backwards compatibility with older clients ----
+  deliveryFee: 30,
+
   autoApproveReviews: false,
   enableWhatsAppApi: false,
   whatsAppApiConfig: {
@@ -290,6 +311,19 @@ const defaultMenu = [
   }
 ];
 
+// Merge stored settings over defaults so newly added keys always exist,
+// even for deployments whose data/settings.json predates this release.
+function mergeWithDefaults(file, defaults) {
+  const stored = readJSON(file, defaults);
+  if (!stored || typeof stored !== 'object') return defaults;
+  const merged = { ...defaults, ...stored };
+  // Arrays/objects from defaults win only when missing.
+  Object.keys(defaults).forEach(k => {
+    if (merged[k] === undefined || merged[k] === null) merged[k] = defaults[k];
+  });
+  return merged;
+}
+
 function readJSON(file, fallback) {
   try {
     if (!fs.existsSync(file)) {
@@ -323,7 +357,7 @@ readJSON(FEEDBACK_FILE, []);
 const db = {
   // Settings
   getSettings() {
-    return readJSON(SETTINGS_FILE, defaultSettings);
+    return mergeWithDefaults(SETTINGS_FILE, defaultSettings);
   },
   updateSettings(newSettings) {
     const current = this.getSettings();
@@ -378,20 +412,49 @@ const db = {
       customerPhone: orderData.customerPhone || '',
       orderType: orderData.orderType || 'pickup', // pickup or delivery
       deliveryAddress: orderData.deliveryAddress || '',
+      pinCode: orderData.pinCode || '',           // reserved for Shiprocket rate lookup
+      deliveryCity: orderData.deliveryCity || '',
+      deliveryState: orderData.deliveryState || '',
       items: orderData.items || [],
+
+      // ---- Customer bill (GST is intentionally NOT part of the customer total) ----
       subtotal: orderData.subtotal || 0,
-      deliveryFee: orderData.deliveryFee || 0,
+      serviceCharge: orderData.serviceCharge || 0,
       packagingFee: orderData.packagingFee || 0,
-      tax: orderData.tax || 0,
+      deliveryCharge: orderData.deliveryCharge || 0,
+      deliveryChargeLabel: orderData.deliveryChargeLabel || '',
+      tip: orderData.tip || 0,
       grandTotal: orderData.grandTotal || 0,
+
+      // ---- Business-only tax compliance reference (never added to grandTotal) ----
+      internalTaxReference: orderData.internalTaxReference || 0,
+      taxPercentage: orderData.taxPercentage || 0,
+
+      // ---- Payment integration state (Razorpay) ----
+      isTestOrder: !!orderData.isTestOrder,
+      paymentProvider: 'razorpay',
+      paymentStatus: orderData.paymentStatus || 'not_configured',
+      paymentMeta: orderData.paymentMeta || null,
+
+      // ---- Delivery integration state (Shiprocket) ----
+      deliveryStatus: orderData.deliveryStatus || 'not_configured',
+      shipmentId: orderData.shipmentId || null,
+      trackingId: orderData.trackingId || null,
+      parcel: orderData.parcel || null,
+
       specialInstructions: orderData.specialInstructions || '',
-      channel: orderData.channel || 'whatsapp', // whatsapp | website | call
+      channel: orderData.channel || 'whatsapp', // whatsapp | website_test | call
       status: orderData.status || (orderData.channel === 'whatsapp' ? 'Awaiting WhatsApp Confirmation' : 'Pending Review'),
       createdAt: new Date().toISOString()
     };
 
     orders.unshift(newOrder);
     writeJSON(ORDERS_FILE, orders);
+
+    // Test orders must never consume real inventory.
+    if (orderData.skipStockUpdate) {
+      return newOrder;
+    }
 
     // Update stock if requested
     if (Array.isArray(orderData.items)) {
@@ -411,6 +474,23 @@ const db = {
   getOrderById(id) {
     const orders = this.getOrders();
     return orders.find(o => o.id.toLowerCase() === id.trim().toLowerCase()) || null;
+  },
+  updateOrderPayment(id, paymentPatch) {
+    const orders = this.getOrders();
+    const order = orders.find(o => o.id === id);
+    if (!order) return null;
+    Object.assign(order, paymentPatch);
+    order.updatedAt = new Date().toISOString();
+    writeJSON(ORDERS_FILE, orders);
+    return order;
+  },
+  deleteOrder(id) {
+    let orders = this.getOrders();
+    const before = orders.length;
+    orders = orders.filter(o => o.id !== id);
+    if (orders.length === before) return false;
+    writeJSON(ORDERS_FILE, orders);
+    return true;
   },
   updateOrderStatus(id, status) {
     const orders = this.getOrders();

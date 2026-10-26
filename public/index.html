@@ -422,7 +422,7 @@
     </button>
   </div>
 
-  <!-- 9. Interactive Cart & WhatsApp Checkout Drawer -->
+  <!-- 9. Interactive Cart & Checkout Drawer -->
   <div class="drawer-overlay" id="cartDrawerOverlay">
     <div class="cart-drawer">
       <div class="cart-header">
@@ -449,13 +449,21 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Your Phone Number</label>
-            <input type="tel" class="form-control" id="orderCustomerPhone" placeholder="e.g. 9876543210">
+            <label class="form-label">Your Phone Number *</label>
+            <input type="tel" class="form-control" id="orderCustomerPhone" placeholder="e.g. 9876543210" inputmode="numeric">
           </div>
 
-          <div class="form-group" id="deliveryAddressGroup" style="display: none;">
-            <label class="form-label">Delivery Address in Kothapet / Hyderabad *</label>
-            <textarea class="form-control" id="orderDeliveryAddress" rows="2" placeholder="House/Flat no, Landmark, Colony, Kothapet"></textarea>
+          <div id="deliveryFieldGroup" style="display: none;">
+            <div class="form-group">
+              <label class="form-label">Complete Delivery Address *</label>
+              <textarea class="form-control" id="orderDeliveryAddress" rows="2" placeholder="House/Flat no, Street, Landmark, Colony, Kothapet"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Delivery PIN Code *</label>
+              <input type="text" class="form-control" id="orderPinCode" placeholder="e.g. 500102" inputmode="numeric" maxlength="6">
+              <div class="form-help">Used later for live delivery-rate lookup once the delivery integration is enabled.</div>
+            </div>
           </div>
 
           <div class="form-group">
@@ -464,38 +472,78 @@
           </div>
         </div>
 
-        <!-- Price Breakdown -->
+        <!-- Chef Tip -->
+        <div class="cart-form-section tip-section">
+          <div class="form-label">Add a Chef Tip (Optional)</div>
+          <div class="tip-selector" id="tipSelector">
+            <button type="button" class="tip-btn active" data-tip="0">No Tip</button>
+            <button type="button" class="tip-btn" data-tip="10">₹10</button>
+            <button type="button" class="tip-btn" data-tip="20">₹20</button>
+            <button type="button" class="tip-btn" data-tip="30">₹30</button>
+            <button type="button" class="tip-btn" data-tip="50">₹50</button>
+            <button type="button" class="tip-btn" data-tip="custom">Custom</button>
+          </div>
+          <div class="custom-tip-row" id="customTipRow" style="display: none;">
+            <input type="number" class="form-control" id="customTipInput" min="5" step="1" placeholder="Amount in ₹ (min ₹5)">
+            <button type="button" class="btn-apply-tip" id="btnApplyCustomTip">Apply</button>
+          </div>
+          <div class="tip-footer">
+            <span class="tip-hint" id="tipHint">Minimum tip ₹5. You can skip or remove the tip at any time.</span>
+            <button type="button" class="btn-remove-tip" id="btnRemoveTip" style="display: none;">✕ Remove Tip</button>
+          </div>
+        </div>
+
+        <!-- Price Breakdown (customer-facing bill — no GST line) -->
         <div class="cart-summary-box">
           <div class="summary-line">
             <span>Items Subtotal:</span>
             <span id="cartSubtotal">₹0</span>
           </div>
           <div class="summary-line">
-            <span>Delivery Fee:</span>
-            <span id="cartDeliveryFee">FREE</span>
+            <span>Service Charge <small>(per order)</small>:</span>
+            <span id="cartServiceCharge">₹14.99</span>
           </div>
           <div class="summary-line">
-            <span>Eco Packaging:</span>
-            <span id="cartPackagingFee">₹15</span>
+            <span>Packaging Fee:</span>
+            <span id="cartPackagingFee">₹0</span>
+          </div>
+          <div class="summary-line delivery-line">
+            <span>Delivery Charge:</span>
+            <span id="cartDeliveryCharge" class="pending-label">Not applicable (pickup)</span>
           </div>
           <div class="summary-line">
-            <span>GST (5%):</span>
-            <span id="cartTax">₹0</span>
+            <span>Chef Tip:</span>
+            <span id="cartTip">₹0</span>
           </div>
           <div class="summary-line total">
-            <span>Grand Total:</span>
+            <span>Final Total:</span>
             <span id="cartGrandTotal">₹0</span>
           </div>
+        </div>
+
+        <!-- Integration status notice (honest, no fake payments / rates) -->
+        <div class="integration-notice" id="integrationNotice">
+          <div class="integration-row"><span>💳 Payments:</span> <strong id="paymentIntegrationStatus">Not configured</strong></div>
+          <div class="integration-row"><span>🛵 Delivery:</span> <strong id="deliveryIntegrationStatus">Not configured</strong></div>
+          <p>No payment is taken on this website yet. Placing an order below saves it as a <strong>TEST ORDER</strong> for review only.</p>
         </div>
       </div>
 
       <div class="cart-footer">
-        <!-- 1. Order on WhatsApp Button -->
+        <!-- 1. Place Test Order (no payment gateway connected) -->
+        <button class="btn-place-test-order" id="btnPlaceTestOrder">
+          <span>🧪 Place Test Order — No Payment</span>
+        </button>
+        <div class="test-order-note">
+          Saves your order details as a <strong>TEST ORDER</strong>. Nothing is charged, and no delivery is confirmed.
+        </div>
+
+        <!-- 2. Order on WhatsApp -->
         <button class="btn-whatsapp-order" id="btnOrderWhatsApp">
           <span>💬 Order on WhatsApp</span>
         </button>
 
-        <!-- 2. Call to Order Button -->
+        <!-- 3. Call to Order Button -->
         <button class="btn-call-order-cart" id="btnCallFromCart">
           <span>📞 Call to Order:</span> <span class="js-phone-text">+91 94945 00646</span>
         </button>
@@ -506,6 +554,14 @@
       </div>
     </div>
   </div>
+
+  <!-- 9b. Separate "View Cart" floating button (appears once cart has items) -->
+  <button class="btn-view-cart-fab js-open-cart" id="viewCartFab" style="display: none;" aria-label="View Cart">
+    <span class="fab-icon">🛒</span>
+    <span class="fab-text">View Cart</span>
+    <span class="fab-count js-cart-count">0</span>
+    <span class="fab-total" id="viewCartFabTotal">₹0</span>
+  </button>
 
   <!-- 10. Rate Your Experience / Feedback Modal -->
   <div class="modal-overlay" id="feedbackModalOverlay">

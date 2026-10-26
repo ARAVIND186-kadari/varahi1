@@ -2487,3 +2487,305 @@ button {
     transform: translateY(0);
   }
 }
+
+/* ==========================================================
+   CART ACTIONS, CHEF TIP, TEST CHECKOUT & VIEW CART BUTTON
+   ========================================================== */
+
+.cart-item-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-remove-item {
+  border: none;
+  background: transparent;
+  color: #DC2626;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-remove-item:hover {
+  background: #FEE2E2;
+}
+
+/* --- Chef Tip selector --- */
+.tip-section .form-label {
+  margin-bottom: 8px;
+}
+
+.tip-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tip-btn {
+  flex: 1 1 auto;
+  min-width: 62px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  background: #FFFFFF;
+  border: 1px solid var(--border-light);
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tip-btn:hover {
+  border-color: var(--primary);
+}
+
+.tip-btn.active {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: #92400E;
+}
+
+.custom-tip-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+.custom-tip-row .form-control {
+  flex: 1;
+}
+
+.btn-apply-tip {
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--primary);
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.btn-apply-tip:hover {
+  background: var(--primary-hover);
+}
+
+.tip-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.tip-hint {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.btn-remove-tip {
+  border: 1px solid #FECACA;
+  background: #FEF2F2;
+  color: #B91C1C;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* --- Billing lines --- */
+.summary-line small {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.summary-line.delivery-line {
+  align-items: flex-start;
+}
+
+.summary-line .pending-label {
+  max-width: 58%;
+  text-align: right;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #B45309;
+  background: #FFFBEB;
+  border: 1px dashed #FDE68A;
+  border-radius: var(--radius-sm);
+  padding: 3px 7px;
+  line-height: 1.35;
+}
+
+.dev-estimate-tag {
+  display: inline-block;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #1D4ED8;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+/* --- Integration honesty notice --- */
+.integration-notice {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 0.8rem;
+  color: #92400E;
+}
+
+.integration-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.79rem;
+  margin-bottom: 4px;
+}
+
+.integration-row strong {
+  color: #B45309;
+}
+
+.integration-notice p {
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+/* --- Place Test Order --- */
+.btn-place-test-order {
+  width: 100%;
+  background: var(--primary);
+  color: #FFFFFF;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-place-test-order:hover:not(:disabled) {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn-place-test-order:disabled {
+  background: #D6D3D1;
+  color: #78716C;
+  cursor: not-allowed;
+}
+
+.test-order-note {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.45;
+  margin-bottom: 4px;
+}
+
+/* --- Test order confirmation modal --- */
+.test-order-banner {
+  background: #FEF3C7;
+  border: 1px solid #F59E0B;
+  color: #92400E;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.83rem;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.test-order-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+
+.test-order-items li {
+  padding: 5px 0;
+  border-bottom: 1px dashed var(--border-light);
+}
+
+/* --- Separate View Cart floating button --- */
+.btn-view-cart-fab {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  z-index: 98;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  color: #FFFFFF;
+  font-weight: 800;
+  font-size: 0.88rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  transition: var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-view-cart-fab:hover {
+  background: var(--primary-hover);
+}
+
+.btn-view-cart-fab .fab-icon {
+  font-size: 1rem;
+}
+
+.btn-view-cart-fab .fab-count {
+  background: #FFFFFF;
+  color: var(--primary);
+  font-size: 0.74rem;
+  font-weight: 800;
+  min-width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+.btn-view-cart-fab .fab-total {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-full);
+  padding: 3px 9px;
+  font-size: 0.78rem;
+}
+
+@media (min-width: 768px) {
+  .btn-view-cart-fab {
+    left: auto;
+    right: 24px;
+    transform: none;
+    bottom: 24px;
+  }
+}

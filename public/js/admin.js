@@ -139,7 +139,7 @@ const Admin = {
     // Hash routing for browser Back / Forward buttons
     window.addEventListener('hashchange', () => {
       const hashTab = window.location.hash.replace('#', '').trim();
-      const validTabs = ['overview', 'orders', 'menu', 'feedback', 'settings', 'whatsapp'];
+      const validTabs = ['overview', 'orders', 'menu', 'feedback', 'settings', 'integrations', 'whatsapp'];
       if (validTabs.includes(hashTab) && hashTab !== this.currentTab) {
         this.switchTab(hashTab, false);
       }
@@ -147,7 +147,7 @@ const Admin = {
 
     // Handle initial hash on page load
     const initialHash = window.location.hash.replace('#', '').trim();
-    if (initialHash && ['overview', 'orders', 'menu', 'feedback', 'settings', 'whatsapp'].includes(initialHash)) {
+    if (initialHash && ['overview', 'orders', 'menu', 'feedback', 'settings', 'integrations', 'whatsapp'].includes(initialHash)) {
       this.currentTab = initialHash;
     }
   },
@@ -265,6 +265,7 @@ const Admin = {
       'menu': 'Menu & Inventory',
       'feedback': 'Feedback & Reviews',
       'settings': 'Restaurant Settings',
+      'integrations': 'Billing & Integrations',
       'whatsapp': 'WhatsApp Ordering'
     };
 
@@ -293,6 +294,7 @@ const Admin = {
     if (tab === 'menu') this.loadMenu();
     if (tab === 'feedback') this.loadFeedback();
     if (tab === 'settings') this.loadSettings();
+    if (tab === 'integrations') this.loadIntegrations();
     if (tab === 'whatsapp') this.loadWhatsAppSettings();
   },
 
@@ -395,7 +397,7 @@ const Admin = {
       
       return `
         <tr>
-          <td><strong>#${escapeHtml(o.id)}</strong><br><small style="color: #64748B;">${dateStr}</small></td>
+          <td><strong>#${escapeHtml(o.id)}</strong>${o.isTestOrder ? ' <span class="badge-status test-order" title="Saved via Place Test Order">TEST</span>' : ''}<br><small style="color: #64748B;">${dateStr}</small></td>
           <td>
             <strong>${escapeHtml(o.customerName)}</strong><br>
             <small style="color: #64748B;">${escapeHtml(o.customerPhone || 'No phone')}</small>
@@ -422,13 +424,44 @@ const Admin = {
             </select>
           </td>
           <td>
-            <a href="tel:${(o.customerPhone || '').replace(/[^0-9+]/g, '')}" class="btn-action respond" title="Call customer">
-              📞 Call
-            </a>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <a href="tel:${(o.customerPhone || '').replace(/[^0-9+]/g, '')}" class="btn-action respond" title="Call customer">
+                📞 Call
+              </a>
+              ${o.isTestOrder ? `<button class="btn-action reject" onclick="Admin.deleteTestOrder('${escapeHtml(o.id)}')" title="Delete this test order">🗑 Delete Test</button>` : ''}
+            </div>
           </td>
         </tr>
       `;
     }).join('');
+  },
+
+  filterOrders() {
+    const filter = document.getElementById('orderTestFilter');
+    const mode = filter ? filter.value : 'all';
+    let list = Array.isArray(this.orders) ? this.orders : [];
+    if (mode === 'test') list = list.filter(o => o.isTestOrder);
+    if (mode === 'live') list = list.filter(o => !o.isTestOrder);
+    this.renderOrdersTable(list);
+  },
+
+  async deleteTestOrder(id) {
+    if (!confirm(`Delete test order #${id}? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/admin/orders/${id}`, {
+        method: 'DELETE',
+        headers: this.getHeaders()
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast(data.message || `Test order #${id} deleted.`, 'success');
+        this.loadOrders();
+      } else {
+        showToast(data.error || 'Failed to delete test order', 'error');
+      }
+    } catch (e) {
+      showToast('Failed to delete test order', 'error');
+    }
   },
 
   async updateOrderStatus(id, newStatus) {
@@ -805,7 +838,120 @@ const Admin = {
     }
   },
 
-  // 5. Settings Tab
+  // 5. Billing & Integrations Tab
+  async loadIntegrations() {
+    try {
+      const res = await fetch('/api/admin/integrations', { headers: this.getHeaders() });
+      if (res.status === 401 || res.status === 403) {
+        this.handleLogout();
+        return;
+      }
+      const data = await res.json();
+      this.renderIntegrationStatus(data);
+      this.renderBillingConfig(data.billing);
+      this.renderOrderTotals(data.totals);
+      this.renderTestOrders(data.testOrders || []);
+    } catch (err) {
+      console.error('Integrations load error:', err);
+      showToast('Failed to load integration status', 'error');
+    }
+  },
+
+  renderIntegrationStatus(data) {
+    const payment = data.payment || {};
+    const delivery = data.delivery || {};
+    const isConfigured = (s) => s === 'configured';
+
+    const set = (id, text) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+
+    set('adminPaymentStatus', isConfigured(payment.status) ? 'Configured' : 'Not configured');
+    set('adminPaymentNote', payment.label || 'Razorpay keys are read from server environment variables only.');
+    set('adminDeliveryStatus', isConfigured(delivery.status) ? 'Configured' : 'Not configured');
+    set('adminDeliveryNote', delivery.label || 'Shiprocket credentials are read from server environment variables only.');
+
+    const renderEnv = (id, cfg) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const required = cfg.requiredEnvVars || [];
+      const configured = cfg.configuredEnvVars || [];
+      if (required.length === 0) {
+        el.innerHTML = '';
+        return;
+      }
+      el.innerHTML = `
+        <div class="env-row"><span>Required environment variables</span></div>
+        ${required.map(v => `<div class="env-var ${configured.includes(v) ? 'set' : ''}">${configured.includes(v) ? '✓' : '○'} ${v}</div>`).join('')}
+        <div class="env-row muted">${configured.length ? `${configured.length} of ${required.length} present on the server.` : 'None present on the server yet.'} Secret values are never displayed here.</div>
+      `;
+    };
+
+    renderEnv('adminPaymentEnv', payment);
+    renderEnv('adminDeliveryEnv', delivery);
+  },
+
+  renderBillingConfig(billing) {
+    const el = document.getElementById('adminBillingConfig');
+    if (!el || !billing) return;
+    const deliveryRow = billing.enableDevelopmentDeliveryFee
+      ? `₹${Number(billing.developmentDeliveryFee).toFixed(2)} <span class="pill-warning">dev estimate</span>`
+      : '<span class="pill-muted">Calculated when delivery integration is enabled</span>';
+
+    el.innerHTML = `
+      <div class="billing-row"><span>Service charge (per order)</span><strong>₹${Number(billing.serviceCharge).toFixed(2)}</strong></div>
+      <div class="billing-row"><span>Packaging fee</span><strong>₹${Number(billing.packagingFee).toFixed(2)}</strong></div>
+      <div class="billing-row"><span>Delivery charge</span><strong>${deliveryRow}</strong></div>
+      <div class="billing-row"><span>Minimum chef tip</span><strong>₹${Number(billing.minimumTip)}</strong></div>
+      <div class="billing-row"><span>Chef tip presets</span><strong>${(billing.tipPresets || []).map(p => '₹' + p).join(', ') || '—'}</strong></div>
+      <div class="billing-row"><span>Business GST rate (internal, not on customer bill)</span><strong>${Number(billing.taxPercentage)}%</strong></div>
+    `;
+  },
+
+  renderOrderTotals(totals) {
+    const el = document.getElementById('adminOrderTotals');
+    if (!el || !totals) return;
+    el.innerHTML = `
+      <div class="billing-row"><span>Total orders recorded</span><strong>${totals.orderCount}</strong></div>
+      <div class="billing-row"><span>Test orders</span><strong>${totals.testOrderCount} (₹${Number(totals.testOrderValue).toFixed(2)})</strong></div>
+      <div class="billing-row"><span>Live orders</span><strong>${totals.liveOrderCount}</strong></div>
+      <div class="billing-row"><span>Item subtotal</span><strong>₹${Number(totals.subtotal).toFixed(2)}</strong></div>
+      <div class="billing-row"><span>Service charge collected</span><strong>₹${Number(totals.serviceCharge).toFixed(2)}</strong></div>
+      <div class="billing-row"><span>Packaging fee collected</span><strong>₹${Number(totals.packagingFee).toFixed(2)}</strong></div>
+      <div class="billing-row"><span>Delivery charge recorded</span><strong>₹${Number(totals.deliveryCharge).toFixed(2)}</strong></div>
+      <div class="billing-row highlight"><span> Chef tips</span><strong>₹${Number(totals.tips).toFixed(2)}</strong></div>
+      <div class="billing-row highlight"><span>Order totals (grand)</span><strong>₹${Number(totals.grandTotal).toFixed(2)}</strong></div>
+    `;
+  },
+
+  renderTestOrders(testOrders) {
+    const tbody = document.getElementById('adminTestOrdersTableBody');
+    if (!tbody) return;
+    if (!Array.isArray(testOrders) || testOrders.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 26px; color: #64748B;">No test orders saved yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = testOrders.map(o => {
+      const dateStr = new Date(o.createdAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+      return `
+        <tr>
+          <td><strong>#${escapeHtml(o.id)}</strong> <span class="badge-status test-order">TEST</span></td>
+          <td>${escapeHtml(o.customerName)}<br><small style="color: #64748B;">${escapeHtml(o.customerPhone || 'No phone')}</small></td>
+          <td><strong>₹${Number(o.grandTotal).toFixed(2)}</strong></td>
+          <td>₹${Number(o.tip || 0).toFixed(2)}</td>
+          <td><span class="badge-status pending">${escapeHtml(o.paymentStatus)}</span></td>
+          <td><span class="badge-status pending">${escapeHtml(o.deliveryStatus)}</span></td>
+          <td><small style="color: #64748B;">${dateStr}</small></td>
+          <td>
+            <button class="btn-action reject" onclick="Admin.deleteTestOrder('${escapeHtml(o.id)}')">🗑 Delete</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  },
+
+  // 6. Settings Tab
   async loadSettings() {
     try {
       const res = await fetch('/api/settings');
@@ -824,9 +970,16 @@ const Admin = {
       setVal('setGoogleMapsUrl', this.settings.googleMapsUrl);
       setVal('setOpeningHours', this.settings.openingHours);
       setVal('setStatusNote', this.settings.statusNote);
-      setVal('setDeliveryFee', this.settings.deliveryFee);
+      setVal('setServiceCharge', this.settings.serviceCharge);
       setVal('setPackagingFee', this.settings.packagingFee);
+      setVal('setDevelopmentDeliveryFee', this.settings.developmentDeliveryFee);
+      setVal('setMinimumTip', this.settings.minimumTip);
       setVal('setTaxPercentage', this.settings.taxPercentage);
+
+      const devDeliveryEl = document.getElementById('setEnableDevelopmentDeliveryFee');
+      if (devDeliveryEl) {
+        devDeliveryEl.checked = !!this.settings.enableDevelopmentDeliveryFee;
+      }
 
       const autoApproveEl = document.getElementById('setAutoApproveReviews');
       if (autoApproveEl) {
@@ -854,8 +1007,11 @@ const Admin = {
       googleMapsUrl: getVal('setGoogleMapsUrl', ''),
       openingHours: getVal('setOpeningHours', ''),
       statusNote: getVal('setStatusNote', ''),
-      deliveryFee: Number(getVal('setDeliveryFee', 30)),
-      packagingFee: Number(getVal('setPackagingFee', 15)),
+      serviceCharge: Number(getVal('setServiceCharge', 14.99)),
+      packagingFee: Number(getVal('setPackagingFee', 0)),
+      enableDevelopmentDeliveryFee: document.getElementById('setEnableDevelopmentDeliveryFee') ? document.getElementById('setEnableDevelopmentDeliveryFee').checked : false,
+      developmentDeliveryFee: Number(getVal('setDevelopmentDeliveryFee', 30)),
+      minimumTip: Number(getVal('setMinimumTip', 5)),
       taxPercentage: Number(getVal('setTaxPercentage', 5)),
       autoApproveReviews: document.getElementById('setAutoApproveReviews') ? document.getElementById('setAutoApproveReviews').checked : false
     };

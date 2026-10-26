@@ -1,5 +1,23 @@
 // Varahi Tiffins - Main Application Controller
-const API_BASE_URL = 'https://varahi-ckbu.onrender.com';
+// The site is served by the same Express server that exposes /api/*, so the
+// default is same-origin. The legacy hosted backend is kept as a fallback so
+// an externally hosted copy of this page keeps working unchanged.
+const API_BASE_URL = '';
+const LEGACY_API_BASE_URL = 'https://varahi-ckbu.onrender.com';
+
+async function fetchJson(path) {
+  try {
+    const res = await fetch(API_BASE_URL + path);
+    if (!res.ok) throw new Error(`${path} -> ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    if (API_BASE_URL === LEGACY_API_BASE_URL) throw err;
+    const res = await fetch(LEGACY_API_BASE_URL + path);
+    if (!res.ok) throw new Error(`${path} -> ${res.status}`);
+    return await res.json();
+  }
+}
+
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
   return String(str)
@@ -17,16 +35,26 @@ const App = {
 
   async init() {
     await this.loadSettings();
+    await this.loadIntegrations();
     await this.loadMenu();
     Cart.init();
     Feedback.init();
     this.bindEvents();
   },
 
+  async loadIntegrations() {
+    try {
+      const data = await fetchJson('/api/integrations');
+      Cart.setIntegrations(data);
+    } catch (err) {
+      console.error('Failed to load integration status:', err);
+      Cart.setIntegrations(null);
+    }
+  },
+
   async loadSettings() {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/settings`);
-      this.settings = await res.json();
+      this.settings = await fetchJson('/api/settings');
       Cart.setSettings(this.settings);
       this.applySettingsToUI();
     } catch (err) {
@@ -108,8 +136,7 @@ const App = {
 
   async loadMenu() {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/menu`);
-      this.menu = await res.json();
+      this.menu = await fetchJson('/api/menu');
       this.renderMenu();
     } catch (err) {
       console.error('Failed to load menu items:', err);

@@ -7,14 +7,29 @@
   "whatsapp": "919494500646",
   "openingHours": "7:00 AM–12:00 PM and 6:00 PM–10:00 PM daily",
   "statusNote": "Phone number and opening hours require owner confirmation before production launch.",
-  "deliveryFee": 30,
-  "packagingFee": 15,
+  "serviceCharge": 14.99,
+  "packagingFee": 0,
+  "enableDevelopmentDeliveryFee": false,
+  "developmentDeliveryFee": 30,
+  "minimumTip": 5,
+  "tipPresets": [
+    10,
+    20,
+    30,
+    50
+  ],
   "taxPercentage": 5,
+  "parcelLengthCm": 25,
+  "parcelWidthCm": 20,
+  "parcelHeightCm": 10,
+  "parcelApproxGramsPerItem": 250,
+  "pickupPincode": "",
+  "deliveryFee": 30,
+  "autoApproveReviews": false,
   "enableWhatsAppApi": false,
   "whatsAppApiConfig": {
     "phoneNumberId": "",
     "accessToken": "",
     "webhookVerified": false
-  },
-  "autoApproveReviews": false
+  }
 }

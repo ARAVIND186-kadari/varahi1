@@ -1243,3 +1243,152 @@ body {
     width: 100% !important;
   }
 }
+
+/* ==========================================================
+   BILLING & INTEGRATIONS TAB
+   ========================================================== */
+
+.integration-status-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.integration-status-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.integration-icon {
+  font-size: 1.3rem;
+}
+
+.integration-provider {
+  font-weight: 700;
+  color: #1E293B;
+  font-size: 0.95rem;
+}
+
+.integration-status-value {
+  display: inline-block;
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #F59E0B;
+  font-weight: 800;
+  font-size: 0.8rem;
+  padding: 5px 12px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+
+.integration-status-note {
+  font-size: 0.83rem;
+  color: #64748B;
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.integration-env-list {
+  border-top: 1px dashed #CBD5E1;
+  padding-top: 10px;
+}
+
+.env-row {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.env-row.muted {
+  font-weight: 500;
+  color: #94A3B8;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.env-var {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.76rem;
+  color: #64748B;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 5px 9px;
+  margin-bottom: 5px;
+}
+
+.env-var.set {
+  color: #15803D;
+  background: #F0FDF4;
+  border-color: #BBF7D0;
+}
+
+.billing-config-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.billing-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 11px 4px;
+  border-bottom: 1px dashed #E2E8F0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.billing-row:last-child {
+  border-bottom: none;
+}
+
+.billing-row strong {
+  color: #1E293B;
+  text-align: right;
+}
+
+.billing-row.highlight {
+  background: #FFFBEB;
+  border-radius: 8px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-bottom: none;
+  margin-top: 4px;
+}
+
+.pill-warning {
+  display: inline-block;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-left: 6px;
+}
+
+.pill-muted {
+  display: inline-block;
+  background: #FFFBEB;
+  color: #B45309;
+  border: 1px dashed #FDE68A;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.badge-status.test-order {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #F59E0B;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+}
